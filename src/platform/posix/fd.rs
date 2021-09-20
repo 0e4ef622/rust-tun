@@ -42,6 +42,15 @@ impl Fd {
 
 impl Read for Fd {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        <&Fd>::read(&mut &*self, buf)
+    }
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> io::Result<usize> {
+        <&Fd>::read_vectored(&mut &*self, bufs)
+    }
+}
+
+impl Read for &Fd {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         unsafe {
             let amount = libc::read(self.0, buf.as_mut_ptr() as *mut _, buf.len());
 
@@ -72,6 +81,19 @@ impl Read for Fd {
 }
 
 impl Write for Fd {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        <&Fd>::write(&mut &*self, buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        <&Fd>::flush(&mut &*self)
+    }
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> io::Result<usize> {
+        <&Fd>::write_vectored(&mut &*self, bufs)
+    }
+}
+
+impl Write for &Fd {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         unsafe {
             let amount = libc::write(self.0, buf.as_ptr() as *const _, buf.len());
