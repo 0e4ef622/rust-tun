@@ -55,6 +55,28 @@ impl AsyncDevice {
         let codec = TunPacketCodec::new(pi, self.inner.get_ref().mtu().unwrap_or(1504));
         Framed::new(self, codec)
     }
+
+    pub async fn read(&self, out: &mut [u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.readable().await?;
+
+            match guard.try_io(|inner| inner.get_ref().read(out)) {
+                Ok(result) => return result,
+                Err(_would_block) => continue,
+            }
+        }
+    }
+
+    pub async fn write(&self, buf: &[u8]) -> io::Result<usize> {
+        loop {
+            let mut guard = self.inner.writable().await?;
+
+            match guard.try_io(|inner| inner.get_ref().write(buf)) {
+                Ok(result) => return result,
+                Err(_would_block) => continue,
+            }
+        }
+    }
 }
 
 impl AsyncRead for AsyncDevice {
